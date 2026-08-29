@@ -121,10 +121,11 @@ app.post('/api/import-spotify', async (req, res) => {
     }
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, '0.0.0.0', async () => {
     console.log(`🎵 Servidor Backend activo en el puerto ${PORT}`);
     await getSpotifyToken();
     console.log(`✅ Token de Spotify generado exitosamente.`);
 });
+
 
 

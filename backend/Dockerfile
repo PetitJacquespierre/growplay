@@ -5,12 +5,10 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     ffmpeg \
-    wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Descargar el binario oficial de yt-dlp para Linux
-RUN wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
-RUN chmod a+rx /usr/local/bin/yt-dlp
+# Instalar yt-dlp a través de pip (evita bloqueos de GitHub)
+RUN pip3 install -U yt-dlp
 
 # Crear directorio de la app
 WORKDIR /app
@@ -21,9 +19,6 @@ RUN npm install
 
 # Copiar el resto del código del backend
 COPY . .
-
-# Exponer el puerto
-EXPOSE 3001
 
 # Comando de inicio
 CMD ["node", "server.js"]
