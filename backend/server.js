@@ -56,7 +56,7 @@ app.get('/api/stream-yt', async (req, res) => {
             const html = await response.text();
             const match = html.match(/<title>(.*?) - YouTube<\/title>/);
             if (match && match[1]) {
-                trackTitle = match[1].replace(/official|music|video|audio|lyric|hd|4k/gi, '').trim();
+                trackTitle = match[1].replace(/official|music|video|audio|lyric|hd|4k/gi, '').replace(/[^\w\s]/gi, ' ').replace(/\s+/g, ' ').trim();
                 console.log(`[SOUNDCLOUD HYBRID] Título encontrado (Rápido): ${trackTitle}`);
             }
         } catch(e) {
@@ -143,6 +143,7 @@ app.listen(PORT, '0.0.0.0', async () => {
     await getSpotifyToken();
     console.log(`âœ… Token de Spotify generado exitosamente.`);
 });
+
 
 
 
