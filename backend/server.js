@@ -42,42 +42,57 @@ app.get('/api/search', async (req, res) => {
 });
 
 // 2. Endpoint: Stream COMPLETO de YouTube (Usando yt-dlp.exe)
-app.get('/api/stream-yt', (req, res) => {
+// 2. Endpoint: Stream COMPLETO (Motor Híbrido SoundCloud usando yt-dlp)
+app.get('/api/stream-yt', async (req, res) => {
     const { videoId } = req.query;
     if (!videoId) return res.status(400).json({ error: 'Falta videoId' });
 
-    const url = 'https://youtube.com/watch?v=' + videoId;
-    console.log('[YT-DLP] Obteniendo URL directa de: ' + url);
-
-    const ytDlpCommand = process.platform === 'win32' ? './yt-dlp.exe' : 'yt-dlp';
-    const ytDlp = spawn(ytDlpCommand, ['-f', 'bestaudio', '--get-url', '--cookies', 'cookies.txt', '--extractor-args', 'youtube:player_client=tv', url]);
-
-    let audioUrl = '';
-    ytDlp.stdout.on('data', data => {
-        audioUrl += data.toString();
-    });
-
-    ytDlp.stderr.on('data', data => {
-        console.error('[yt-dlp error] ' + data);
-    });
-
-    ytDlp.on('close', code => {
-        if (code === 0 && audioUrl.trim()) {
-            console.log('[YT-DLP] Redirigiendo a audio directo...');
-            res.redirect(audioUrl.trim());
-        } else {
-            console.error('[YT-DLP] Error al obtener URL, code ' + code);
-            if (!res.headersSent) res.status(500).json({ error: 'Error extrayendo audio' });
+    try {
+        console.log('[SOUNDCLOUD HYBRID] Resolviendo título para videoId: ' + videoId);
+        
+        let trackTitle = videoId;
+        try {
+            const videoData = await ytSearch({ videoId: videoId });
+            if (videoData && videoData.title) {
+                trackTitle = videoData.title.replace(/official|music|video|audio|lyric|hd|4k/gi, '').trim();
+                console.log([SOUNDCLOUD HYBRID] Título encontrado: );
+            }
+        } catch(e) {
+            console.log([SOUNDCLOUD HYBRID] Fallo yt-search, usando ID.);
         }
-    });
 
-    req.on('close', () => {
-        console.log('[YT-DLP] Conexión cerrada por el cliente, deteniendo proceso...');
-        ytDlp.kill('SIGINT');
-    });
+        const scQuery = scsearch1:;
+        const ytDlpCommand = process.platform === 'win32' ? './yt-dlp.exe' : 'yt-dlp';
+        const ytDlp = spawn(ytDlpCommand, ['-f', 'bestaudio', '--get-url', scQuery]);
+
+        let audioUrl = '';
+        ytDlp.stdout.on('data', data => {
+            audioUrl += data.toString();
+        });
+
+        ytDlp.stderr.on('data', data => {
+            console.error([yt-dlp sc-error] );
+        });
+
+        ytDlp.on('close', code => {
+            if (code === 0 && audioUrl.trim()) {
+                console.log('[SOUNDCLOUD HYBRID] Éxito! Redirigiendo a audio directo...');
+                return res.redirect(audioUrl.trim());
+            } else {
+                console.error([SOUNDCLOUD HYBRID] Error al obtener URL, code );
+                return res.status(500).json({ error: 'Error extrayendo audio' });
+            }
+        });
+
+        req.on('close', () => {
+            console.log('[SOUNDCLOUD HYBRID] Conexión cerrada por el cliente, deteniendo proceso...');
+            ytDlp.kill('SIGINT');
+        });
+    } catch (error) {
+        console.error('[SOUNDCLOUD HYBRID] Error general:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
-
-// 3. Endpoint: Importador de Spotify (API Oficial)
 app.post('/api/import-spotify', async (req, res) => {
     try {
         const { playlistUrl } = req.body;
@@ -126,6 +141,9 @@ app.listen(PORT, '0.0.0.0', async () => {
     await getSpotifyToken();
     console.log(`âœ… Token de Spotify generado exitosamente.`);
 });
+
+
+
 
 
 
