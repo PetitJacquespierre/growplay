@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // Configuración de Spotify con las credenciales del usuario
 const spotifyApi = new SpotifyWebApi({
@@ -126,4 +126,5 @@ app.listen(PORT, async () => {
     await getSpotifyToken();
     console.log(`✅ Token de Spotify generado exitosamente.`);
 });
+
 
