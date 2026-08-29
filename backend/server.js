@@ -51,6 +51,7 @@ app.get('/api/stream-yt', (req, res) => {
 
     // Restaurar audio/mpeg ya que permitía a Chrome hacer fallback y reproducir el webm
     res.header('Content-Type', 'audio/mpeg');
+    res.flushHeaders();
     
     const ytDlpCommand = process.platform === 'win32' ? './yt-dlp.exe' : 'yt-dlp';
     const ytDlp = spawn(ytDlpCommand, [
@@ -126,6 +127,7 @@ app.listen(PORT, '0.0.0.0', async () => {
     await getSpotifyToken();
     console.log(`✅ Token de Spotify generado exitosamente.`);
 });
+
 
 
 
