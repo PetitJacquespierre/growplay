@@ -41,7 +41,6 @@ app.get('/api/search', async (req, res) => {
     }
 });
 
-// 2. Endpoint: Stream COMPLETO de YouTube (Usando yt-dlp.exe)
 // 2. Endpoint: Stream COMPLETO (Motor Híbrido SoundCloud usando yt-dlp)
 app.get('/api/stream-yt', async (req, res) => {
     const { videoId } = req.query;
@@ -55,13 +54,13 @@ app.get('/api/stream-yt', async (req, res) => {
             const videoData = await ytSearch({ videoId: videoId });
             if (videoData && videoData.title) {
                 trackTitle = videoData.title.replace(/official|music|video|audio|lyric|hd|4k/gi, '').trim();
-                console.log([SOUNDCLOUD HYBRID] Título encontrado: );
+                console.log(`[SOUNDCLOUD HYBRID] Título encontrado: ${trackTitle}`);
             }
         } catch(e) {
-            console.log([SOUNDCLOUD HYBRID] Fallo yt-search, usando ID.);
+            console.log(`[SOUNDCLOUD HYBRID] Fallo yt-search, usando ID.`);
         }
 
-        const scQuery = scsearch1:;
+        const scQuery = `scsearch1:${trackTitle}`;
         const ytDlpCommand = process.platform === 'win32' ? './yt-dlp.exe' : 'yt-dlp';
         const ytDlp = spawn(ytDlpCommand, ['-f', 'bestaudio', '--get-url', scQuery]);
 
@@ -71,7 +70,7 @@ app.get('/api/stream-yt', async (req, res) => {
         });
 
         ytDlp.stderr.on('data', data => {
-            console.error([yt-dlp sc-error] );
+            console.error(`[yt-dlp sc-error] ${data.toString().trim()}`);
         });
 
         ytDlp.on('close', code => {
@@ -79,7 +78,7 @@ app.get('/api/stream-yt', async (req, res) => {
                 console.log('[SOUNDCLOUD HYBRID] Éxito! Redirigiendo a audio directo...');
                 return res.redirect(audioUrl.trim());
             } else {
-                console.error([SOUNDCLOUD HYBRID] Error al obtener URL, code );
+                console.error(`[SOUNDCLOUD HYBRID] Error al obtener URL, code ${code}`);
                 return res.status(500).json({ error: 'Error extrayendo audio' });
             }
         });
@@ -141,6 +140,8 @@ app.listen(PORT, '0.0.0.0', async () => {
     await getSpotifyToken();
     console.log(`âœ… Token de Spotify generado exitosamente.`);
 });
+
+
 
 
 
