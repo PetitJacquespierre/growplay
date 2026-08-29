@@ -50,7 +50,7 @@ app.get('/api/stream-yt', (req, res) => {
     console.log('[YT-DLP] Obteniendo URL directa de: ' + url);
 
     const ytDlpCommand = process.platform === 'win32' ? './yt-dlp.exe' : 'yt-dlp';
-    const ytDlp = spawn(ytDlpCommand, ['-f', 'bestaudio', '--get-url', '--extractor-args', 'youtube:player_client=tv', url]);
+    const ytDlp = spawn(ytDlpCommand, ['-f', 'bestaudio', '--get-url', '--cookies', 'cookies.txt', '--extractor-args', 'youtube:player_client=tv', url]);
 
     let audioUrl = '';
     ytDlp.stdout.on('data', data => {
@@ -126,6 +126,7 @@ app.listen(PORT, '0.0.0.0', async () => {
     await getSpotifyToken();
     console.log(`✅ Token de Spotify generado exitosamente.`);
 });
+
 
 
 
