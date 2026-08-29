@@ -1,4 +1,4 @@
-FROM node:18-bullseye-slim
+FROM node:20-bullseye-slim
 
 # Instalar Python, FFmpeg y dependencias necesarias para yt-dlp
 RUN apt-get update && apt-get install -y \
@@ -22,3 +22,4 @@ COPY . .
 
 # Comando de inicio
 CMD ["node", "server.js"]
+
