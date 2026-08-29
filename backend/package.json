@@ -1,0 +1,28 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
+    "axios": "^1.20.0",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "isomorphic-unfetch": "^4.0.2",
+    "play-dl": "^1.9.7",
+    "spotify-url-info": "^3.3.3",
+    "spotify-web-api-node": "^5.0.2",
+    "youtube-ext": "^1.1.25",
+    "yt-search": "^2.13.1"
+  }
+}
