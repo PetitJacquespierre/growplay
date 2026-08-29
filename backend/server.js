@@ -48,16 +48,14 @@ app.get('/api/stream-yt', async (req, res) => {
 
     try {
         console.log('[SOUNDCLOUD HYBRID] Resolviendo título para videoId: ' + videoId);
-        
         let trackTitle = videoId;
         try {
-            // METODO ULTRA RÁPIDO PARA OBTENER EL TÍTULO
             const response = await fetch('https://youtube.com/watch?v=' + videoId);
             const html = await response.text();
             const match = html.match(/<title>(.*?) - YouTube<\/title>/);
             if (match && match[1]) {
                 trackTitle = match[1].replace(/official|music|video|audio|lyric|hd|4k/gi, '').replace(/[^\w\s]/gi, ' ').replace(/\s+/g, ' ').trim();
-                console.log(`[SOUNDCLOUD HYBRID] Título encontrado (Rápido): ${trackTitle}`);
+                console.log(`[SOUNDCLOUD HYBRID] Título (Rápido): ${trackTitle}`);
             }
         } catch(e) {
             console.log(`[SOUNDCLOUD HYBRID] Fallo fetch de título, usando ID.`);
@@ -65,34 +63,35 @@ app.get('/api/stream-yt', async (req, res) => {
 
         const scQuery = `scsearch1:${trackTitle}`;
         const ytDlpCommand = process.platform === 'win32' ? './yt-dlp.exe' : 'yt-dlp';
-        const ytDlp = spawn(ytDlpCommand, ['-f', 'bestaudio', '--get-url', scQuery]);
+        
+        console.log(`[SOUNDCLOUD HYBRID] Iniciando streaming directo para: ${scQuery}`);
+        
+        // ¡Magia! En lugar de --get-url, usamos -o - para que escupa los bytes crudos directamente al cliente
+        const ytDlp = spawn(ytDlpCommand, ['-f', 'bestaudio', '-o', '-', scQuery]);
 
-        let audioUrl = '';
-        ytDlp.stdout.on('data', data => {
-            audioUrl += data.toString();
-        });
+        // Evitar problemas de CORS al descargar en el Modo Búnker
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Transfer-Encoding', 'chunked');
+
+        // Conectar la salida de yt-dlp directamente a la respuesta del usuario
+        ytDlp.stdout.pipe(res);
 
         ytDlp.stderr.on('data', data => {
             console.error(`[yt-dlp sc-error] ${data.toString().trim()}`);
         });
 
         ytDlp.on('close', code => {
-            if (code === 0 && audioUrl.trim()) {
-                console.log('[SOUNDCLOUD HYBRID] Éxito! Redirigiendo a audio directo...');
-                return res.redirect(audioUrl.trim());
-            } else {
-                console.error(`[SOUNDCLOUD HYBRID] Error al obtener URL, code ${code}`);
-                return res.status(500).json({ error: 'Error extrayendo audio' });
-            }
+            console.log(`[SOUNDCLOUD HYBRID] Transmisión finalizada con código ${code}`);
         });
 
         req.on('close', () => {
-            console.log('[SOUNDCLOUD HYBRID] Conexión cerrada por el cliente, deteniendo proceso...');
+            console.log('[SOUNDCLOUD HYBRID] Conexión cerrada por el cliente, deteniendo descarga...');
             ytDlp.kill('SIGINT');
         });
     } catch (error) {
         console.error('[SOUNDCLOUD HYBRID] Error general:', error);
-        res.status(500).json({ error: error.message });
+        if (!res.headersSent) res.status(500).json({ error: error.message });
     }
 });
 app.post('/api/import-spotify', async (req, res) => {
@@ -143,6 +142,8 @@ app.listen(PORT, '0.0.0.0', async () => {
     await getSpotifyToken();
     console.log(`âœ… Token de Spotify generado exitosamente.`);
 });
+
+
 
 
 
