@@ -46,8 +46,8 @@ app.get('/api/stream-yt', (req, res) => {
     const { videoId } = req.query;
     if (!videoId) return res.status(400).json({ error: 'Falta videoId' });
 
-    const url = https://youtube.com/watch?v= + videoId;
-    console.log([YT-DLP] Obteniendo URL directa de:  + url);
+    const url = 'https://youtube.com/watch?v=' + videoId;
+    console.log('[YT-DLP] Obteniendo URL directa de: ' + url);
 
     const ytDlpCommand = process.platform === 'win32' ? './yt-dlp.exe' : 'yt-dlp';
     const ytDlp = spawn(ytDlpCommand, ['-f', 'bestaudio', '--get-url', url]);
@@ -58,21 +58,21 @@ app.get('/api/stream-yt', (req, res) => {
     });
 
     ytDlp.stderr.on('data', data => {
-        console.error([yt-dlp error]  + data);
+        console.error('[yt-dlp error] ' + data);
     });
 
     ytDlp.on('close', code => {
         if (code === 0 && audioUrl.trim()) {
-            console.log([YT-DLP] Redirigiendo a audio directo...);
+            console.log('[YT-DLP] Redirigiendo a audio directo...');
             res.redirect(audioUrl.trim());
         } else {
-            console.error([YT-DLP] Error al obtener URL, code  + code);
+            console.error('[YT-DLP] Error al obtener URL, code ' + code);
             if (!res.headersSent) res.status(500).json({ error: 'Error extrayendo audio' });
         }
     });
 
     req.on('close', () => {
-        console.log([YT-DLP] Conexión cerrada por el cliente, deteniendo proceso...);
+        console.log('[YT-DLP] Conexión cerrada por el cliente, deteniendo proceso...');
         ytDlp.kill('SIGINT');
     });
 });
@@ -126,6 +126,8 @@ app.listen(PORT, '0.0.0.0', async () => {
     await getSpotifyToken();
     console.log(`âœ… Token de Spotify generado exitosamente.`);
 });
+
+
 
 
 
