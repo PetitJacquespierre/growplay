@@ -51,13 +51,16 @@ app.get('/api/stream-yt', async (req, res) => {
         
         let trackTitle = videoId;
         try {
-            const videoData = await ytSearch({ videoId: videoId });
-            if (videoData && videoData.title) {
-                trackTitle = videoData.title.replace(/official|music|video|audio|lyric|hd|4k/gi, '').trim();
-                console.log(`[SOUNDCLOUD HYBRID] Título encontrado: ${trackTitle}`);
+            // METODO ULTRA RÁPIDO PARA OBTENER EL TÍTULO
+            const response = await fetch('https://youtube.com/watch?v=' + videoId);
+            const html = await response.text();
+            const match = html.match(/<title>(.*?) - YouTube<\/title>/);
+            if (match && match[1]) {
+                trackTitle = match[1].replace(/official|music|video|audio|lyric|hd|4k/gi, '').trim();
+                console.log(`[SOUNDCLOUD HYBRID] Título encontrado (Rápido): ${trackTitle}`);
             }
         } catch(e) {
-            console.log(`[SOUNDCLOUD HYBRID] Fallo yt-search, usando ID.`);
+            console.log(`[SOUNDCLOUD HYBRID] Fallo fetch de título, usando ID.`);
         }
 
         const scQuery = `scsearch1:${trackTitle}`;
@@ -140,6 +143,7 @@ app.listen(PORT, '0.0.0.0', async () => {
     await getSpotifyToken();
     console.log(`âœ… Token de Spotify generado exitosamente.`);
 });
+
 
 
 
