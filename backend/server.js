@@ -47,7 +47,6 @@ app.get('/api/stream-yt', async (req, res) => {
     if (!videoId) return res.status(400).json({ error: 'Falta videoId' });
 
     try {
-        console.log('[SOUNDCLOUD HYBRID] Resolviendo título para videoId: ' + videoId);
         let trackTitle = videoId;
         try {
             const response = await fetch('https://youtube.com/watch?v=' + videoId);
@@ -55,42 +54,58 @@ app.get('/api/stream-yt', async (req, res) => {
             const match = html.match(/<title>(.*?) - YouTube<\/title>/);
             if (match && match[1]) {
                 trackTitle = match[1].replace(/official|music|video|audio|lyric|hd|4k/gi, '').replace(/[^\w\s]/gi, ' ').replace(/\s+/g, ' ').trim();
-                console.log(`[SOUNDCLOUD HYBRID] Título (Rápido): ${trackTitle}`);
             }
         } catch(e) {
-            console.log(`[SOUNDCLOUD HYBRID] Fallo fetch de título, usando ID.`);
+            console.log(`[SOUNDCLOUD HYBRID] Fallo fetch rápido, usando ytSearch...`);
+            try {
+                const ytSearch = require('yt-search');
+                const videoData = await ytSearch({ videoId: videoId });
+                if (videoData && videoData.title) {
+                    trackTitle = videoData.title.replace(/official|music|video|audio|lyric|hd|4k/gi, '').replace(/[^\w\s]/gi, ' ').replace(/\s+/g, ' ').trim();
+                }
+            } catch(err) { }
         }
 
         const scQuery = `scsearch1:${trackTitle}`;
+        console.log(`[SOUNDCLOUD HYBRID] Buscando: ${scQuery}`);
+        
         const ytDlpCommand = process.platform === 'win32' ? './yt-dlp.exe' : 'yt-dlp';
-        
-        console.log(`[SOUNDCLOUD HYBRID] Iniciando streaming directo para: ${scQuery}`);
-        
-        // ¡Magia! En lugar de --get-url, usamos -o - para que escupa los bytes crudos directamente al cliente
-        const ytDlp = spawn(ytDlpCommand, ['-f', 'bestaudio', '-o', '-', scQuery]);
+        // Volvemos a pedir SOLO la URL (--get-url)
+        const ytDlp = spawn(ytDlpCommand, ['-f', 'bestaudio', '--get-url', scQuery]);
 
-        // Evitar problemas de CORS al descargar en el Modo Búnker
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Transfer-Encoding', 'chunked');
+        let audioUrl = '';
+        ytDlp.stdout.on('data', data => { audioUrl += data.toString(); });
+        ytDlp.stderr.on('data', data => { console.error(`[yt-dlp] ${data.toString().trim()}`); });
 
-        // Conectar la salida de yt-dlp directamente a la respuesta del usuario
-        ytDlp.stdout.pipe(res);
-
-        ytDlp.stderr.on('data', data => {
-            console.error(`[yt-dlp sc-error] ${data.toString().trim()}`);
+        ytDlp.on('close', async code => {
+            const finalUrl = audioUrl.trim().split('\n').pop(); // Asegurar obtener solo el link
+            if (code === 0 && finalUrl) {
+                // MAGIA: Detectar si es una descarga (Modo Búnker) o si es el reproductor normal
+                const isDownload = req.headers['sec-fetch-mode'] === 'cors' || req.headers['origin'];
+                
+                if (isDownload) {
+                    console.log('[SOUNDCLOUD HYBRID] MODO BÚNKER (Descarga) detectado. Proxeando audio sin CORS...');
+                    try {
+                        const axios = require('axios');
+                        const response = await axios({ method: 'get', url: finalUrl, responseType: 'stream' });
+                        res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mpeg');
+                        res.setHeader('Access-Control-Allow-Origin', '*');
+                        response.data.pipe(res);
+                    } catch(err) {
+                        console.error('[SOUNDCLOUD] Fallo al proxear la descarga:', err.message);
+                        if (!res.headersSent) res.status(500).json({ error: 'Error en Proxy' });
+                    }
+                } else {
+                    console.log('[SOUNDCLOUD HYBRID] REPRODUCTOR NORMAL detectado. Redirigiendo a CDN...');
+                    return res.redirect(finalUrl);
+                }
+            } else {
+                return res.status(500).json({ error: 'Error extrayendo audio' });
+            }
         });
 
-        ytDlp.on('close', code => {
-            console.log(`[SOUNDCLOUD HYBRID] Transmisión finalizada con código ${code}`);
-        });
-
-        req.on('close', () => {
-            console.log('[SOUNDCLOUD HYBRID] Conexión cerrada por el cliente, deteniendo descarga...');
-            ytDlp.kill('SIGINT');
-        });
+        req.on('close', () => { ytDlp.kill('SIGINT'); });
     } catch (error) {
-        console.error('[SOUNDCLOUD HYBRID] Error general:', error);
         if (!res.headersSent) res.status(500).json({ error: error.message });
     }
 });
@@ -142,6 +157,7 @@ app.listen(PORT, '0.0.0.0', async () => {
     await getSpotifyToken();
     console.log(`âœ… Token de Spotify generado exitosamente.`);
 });
+
 
 
 
